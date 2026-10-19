@@ -19,8 +19,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      # The bootstrap workflow may add toolchain setup steps here (e.g. setup-java, setup-node)
-      # to match the commands it writes into scripts/check.conf.
+      # Toolchain for the commands in scripts/check.conf (added at bootstrap, 2026-10-19).
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Playwright browser (only once e2e exists)
+        if: hashFiles('web/playwright.config.ts') != ''
+        working-directory: web
+        run: npm ci --no-audit --no-fund && npx playwright install --with-deps chromium
       # --fast is for the inner loop only; CI always runs the full contract (docs/testing.md).
       - name: Verification contract
         run: |
