@@ -14,3 +14,27 @@ Thumbs.db
 
 # Claude Code personal settings (shared settings.json IS committed after init)
 .claude/settings.local.json
+
+bin/ 
+obj/ 
+node_modules/ 
+web/dist/
+*.db*
+# .NET
+bin/
+obj/
+TestResults/
+.vs/
+*.user
+
+# Node / web
+node_modules/
+web/dist/
+web/test-results/
+web/playwright-report/
+coverage/
+
+# SQLite databases (local + e2e throwaway)
+*.db
+*.db-shm
+*.db-wal

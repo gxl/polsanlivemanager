@@ -1,17 +1,42 @@
 # Testing
 
-> **Template — filled during bootstrap.**
+> Decided at bootstrap (2026-10-19).
 
 ## The contract
 - Every acceptance criterion maps to at least one test (criterion ↔ test map lives in the plan).
 - Tests assert **behavior**, not implementation details or mere status codes.
 - The whole suite runs inside `scripts/check` — one command, everywhere.
+- No coverage-percentage gate: the plan's criterion ↔ test map is the gate.
 
 ## Frameworks & layout
-<!-- Test framework(s), where tests live, naming pattern. -->
+| Level | Tool | Where | Category / profile |
+|---|---|---|---|
+| Unit (domain + application, BR-n) | xUnit v3 + Shouldly, fake `IClock` | `tests/<Project>.Tests/` | `Category=Unit` → fast |
+| Architecture (FD-1…FD-6) | NetArchTest | `tests/Architecture.Tests/` | `Category=Unit` → fast |
+| Integration (API → DB, ProblemDetails codes, auth) | `WebApplicationFactory` + SQLite in-memory per test, fake VideoProvider | `tests/PolsanLive.Api.Tests/` | `Category=Integration` → full only |
+| Frontend unit/component | Vitest (`vitest run`) + Testing Library | `web/src/**/*.test.ts(x)` | fast |
+| E2E (v1 loop) | Playwright (TS), Chromium headless, `--workers=1` | `web/e2e/` | full only |
+
+- Naming: `Method_Condition_ExpectedResult` (`docs/conventions.md`).
+- Every .NET test has a `Category` trait. The fast/full split is a **selector**:
+  `--filter "Category=Unit"` (fast) and `--filter "Category!=Unit"` (full only) — a test without
+  the trait still runs in full (Two speeds, rule 4).
+- **Never** call a real video provider or the network in check: VideoProvider is replaced by a
+  fake behind its Contracts interface.
+- **App-under-test lifecycle (e2e): owned by Playwright `webServer`** — it starts the published API
+  (serving `web/dist`) on a fixed port with a throwaway SQLite file and the fake provider, waits
+  for `/health`, and stops it at the end, also on failure/timeout. `reuseExistingServer: false`.
 
 ## What must be tested
-<!-- e.g. every business rule (BR-n), every boundary/forbidden dependency, critical flows E2E/smoke. -->
+- Every business rule (BR-n in `docs/domain.md`) with its boundaries (e.g. BR-5 at exactly
+  `start+10:00` and `+10:01`; BR-4 at `start−10:00` and `end`; BR-9 on the day the retention
+  period ends), tagged `[Trait("Rule","BR-n")]`.
+- Every forbidden dependency FD-1…FD-6 (FD-5 via ESLint).
+- AuthZ: every endpoint/hub method has a test for an unauthorized role (default-deny), incl.
+  "instructor of another session cannot remove" (BR-8) and "non-enrolled student cannot join" (BR-3).
+- Every `Error.code` the API can return, as ProblemDetails.
+- Token lifecycle: access expiry, refresh rotation, reuse of a rotated refresh token is rejected.
+- E2E smoke of the v1 loop: schedule → join → remove → attendance shows status + removal flag.
 
 ## Protected-tests rule
 Weakening asserts, deleting, or skipping tests to reach green is forbidden. A red test triggers
